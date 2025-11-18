@@ -1,42 +1,71 @@
-version: '3.8' # Versión de Docker Compose
+version: '3.8'
 
 services:
-  # 1. La Base de Datos PostgreSQL
-  db-postgres:
-    image: postgres:15-alpine # Usamos una imagen ligera de Postgres
+  # Base de datos
+  postgres: # Nombre del servicio (hostname interno)
+    image: postgres:15-alpine
     container_name: db_postgres
     environment:
+      POSTGRES_DB: proyecto_sd
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: tu_contraseña_de_postgres # ¡USA TU CONTRASEÑA REAL!
-      POSTGRES_DB: proyecto_sd # Docker creará la BD por nosotros
+      POSTGRES_PASSWORD: root
     ports:
-      - "5432:5432" # Expone el puerto de la BD a tu máquina local
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - proyecto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 2. El Servicio REST (Java)
+  # Backend REST (Java)
   servicio-rest:
-    build: ./servicio-core-negocio # Le decimos que construya desde esta carpeta
+    build:
+      context: ./servicio-core-negocio
+      dockerfile: Dockerfile
     container_name: servicio_rest
     ports:
-      - "8080:8080" # Expone el puerto 8080
-    depends_on:
-      - db-postgres # No arranques hasta que la BD esté lista
+      - "8080:8080"
     environment:
-      # Le decimos al servicio CÓMO encontrar la BD (usamos el nombre del servicio)
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db-postgres:5432/proyecto_sd
+      # OJO: Aquí usamos 'postgres' como host porque así se llama el servicio arriba
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/proyecto_sd
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: tu_contraseña_de_postgres # ¡USA TU CONTRASEÑA REAL!
+      SPRING_DATASOURCE_PASSWORD: root
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - proyecto-network
 
-  # 3. El Servicio SOAP (Java)
+  # Backend SOAP (Java)
   servicio-soap:
-    build: ./servicio-facturacion # Le decimos que construya desde esta carpeta
+    build:
+      context: ./servicio-facturacion
+      dockerfile: Dockerfile
     container_name: servicio_soap
     ports:
-      - "8081:8081" # Expone el puerto 8081
+      - "8081:8081"
+    networks:
+      - proyecto-network
 
-  # 4. El Servicio de Tracking (Node.js)
+  # Frontend y WebSocket (Node.js)
   servicio-tracking:
-    build: ./servicio-tracking # Le decimos que construya desde esta carpeta
+    build:
+      context: ./servicio-tracking
+      dockerfile: Dockerfile
     container_name: servicio_tracking
     ports:
-      - "3000:3000" # Expone el puerto 3000
+      - "3000:3000"
+    networks:
+      - proyecto-network
+
+volumes:
+  postgres_data:
+
+networks:
+  proyecto-network:
+    driver: bridge
