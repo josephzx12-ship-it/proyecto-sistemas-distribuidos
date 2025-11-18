@@ -135,7 +135,7 @@
     console.log('Repartidor: Enviando ubicación REAL...', coords);
     
     // ¡Aquí está la magia! Emitimos la ubicación real al servidor
-    socket.emit('repartidor_actualiza_ubicacion', coords); //
+    socket.emit('repartidor_actualiza_ubicacion', coords);
 
     statusEl.className = 'alert alert-success';
     statusEl.textContent = `Estado: Transmitiendo... (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;

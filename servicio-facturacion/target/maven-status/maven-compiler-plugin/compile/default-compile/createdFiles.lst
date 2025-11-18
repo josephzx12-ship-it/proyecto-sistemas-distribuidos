@@ -1,0 +1,4 @@
+com\autonoma\proyecto\facturas\ObjectFactory.class
+com\autonoma\proyecto\facturas\CrearFacturaRequest.class
+com\autonoma\proyecto\facturas\CrearFacturaResponse.class
+com\autonoma\proyecto\facturas\package-info.class
